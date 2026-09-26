@@ -3,7 +3,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'Node_24' // Nombre definido en Global Tool Configuration
+        nodejs 'NodeJS' // Nombre definido en Global Tool Configuration
     }
 
     stages {
