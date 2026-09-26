@@ -12,7 +12,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git(
-                    branch: 'main',
+                    branch: 'master',
                     url: 'https://github.com/andfab23/react-app.git'
                 )
             }
