@@ -4,15 +4,12 @@ pipeline {
 
     tools {
         nodejs 'NodeJS' // Nombre definido en Global Tool Configuration
-        hudson.plugins.sonar.SonarRunnerInstallation 'SonarQubeScanner' // Configurado en Global Tools
     }
 
     environment {
         SONAR_PROJECT_KEY = 'ucp-app-react'
         SONAR_PROJECT_NAME = 'UCP React App'
     }
-
-    
 
     stages {
 
@@ -29,17 +26,22 @@ pipeline {
         // Nueva etapa: Análisis de SonarQube
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                    sonar-scanner \
-                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                    -Dsonar.projectName=${SONAR_PROJECT_NAME} \
-                    -Dsonar.sources=src \
-                    -Dsonar.host.url=http://localhost:9000 \
-                    -Dsonar.login=${SONAR_AUTH_TOKEN} \
-                    -Dsonar.javascript.node=${NODEJS_HOME}/bin/node \
-                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                    '''
+                script {
+                    def scannerHome = tool name: 'SonarQubeScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                    withEnv(["PATH+SONAR=${scannerHome}/bin"]) {
+                        withSonarQubeEnv('SonarQube') {
+                            sh '''
+                            sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                            -Dsonar.sources=src \
+                            -Dsonar.host.url=http://localhost:9000 \
+                            -Dsonar.login=${SONAR_AUTH_TOKEN} \
+                            -Dsonar.javascript.node=${NODEJS_HOME}/bin/node \
+                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            '''
+                        }
+                    }
                 }
             }
         }
@@ -62,8 +64,8 @@ pipeline {
                 if (qg.status != 'OK') {
                     error "Calidad no aprobada: ${qg.status}"
                 }
-        }
-        // Resto de las acciones post...
+            }
+            // Resto de las acciones post...
         }
     }
 }
