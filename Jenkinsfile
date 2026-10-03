@@ -4,7 +4,7 @@ pipeline {
 
     tools {
         nodejs 'NodeJS' // Nombre definido en Global Tool Configuration
-        sonarScanner 'SonarQubeScanner' // Configurado en Global Tools
+        sonarScanner 'MySonarQube' // Configurado en Global Tools
     }
 
     environment {
