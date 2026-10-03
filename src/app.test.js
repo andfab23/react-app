@@ -7,6 +7,6 @@ import App from "./App";
 
 test("renders learn react link", () => {
   render(React.createElement(App));
-  const linkElement = screen.getByText(/¡Universsidad Católica de Pereira !/i);
+  const linkElement = screen.getByText(/¡Universidad Católica de Pereira !/i);
   expect(linkElement).toBeInTheDocument();
 });
