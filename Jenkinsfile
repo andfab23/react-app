@@ -23,7 +23,16 @@ pipeline {
             }
         }
 
-        // Nueva etapa: Análisis de SonarQube
+        // Etapa 2: Instalar dependencias, construir y generar cobertura
+        stage('Build') {
+            steps {
+                sh 'npm install'
+                sh 'npm run build'
+                sh 'npm run test:coverage' 
+            }
+        }
+
+        // Etapa 3: Análisis de SonarQube
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -33,11 +42,8 @@ pipeline {
                             sh '''
                             sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                            -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
                             -Dsonar.sources=src \
-                            -Dsonar.host.url=http://localhost:9000 \
-                            -Dsonar.login=${SONAR_AUTH_TOKEN} \
-                            -Dsonar.javascript.node=${NODEJS_HOME}/bin/node \
                             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
                             '''
                         }
@@ -46,26 +52,18 @@ pipeline {
             }
         }
 
-        // Etapa 2: Instalar dependencias y construir el proyecto
-        stage('Build') {
+        // Etapa 4: Quality Gate de SonarQube
+        stage('Quality Gate') {
             steps {
-                sh 'npm install'
-                sh 'npm run build'
-                sh 'npm run test:coverage' 
-            }
-        }
-    }
-
-    post {
-        always {
-            // Agregar notificación de calidad de SonarQube
-            script {
-                def qg = waitForQualityGate()
-                if (qg.status != 'OK') {
-                    error "Calidad no aprobada: ${qg.status}"
+                timeout(time: 2, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "Calidad no aprobada: ${qg.status}"
+                        }
+                    }
                 }
             }
-            // Resto de las acciones post...
         }
     }
 }
