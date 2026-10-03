@@ -4,7 +4,15 @@ pipeline {
 
     tools {
         nodejs 'NodeJS' // Nombre definido en Global Tool Configuration
+        sonarScanner 'SonarQubeScanner' // Configurado en Global Tools
     }
+
+    environment {
+        SONAR_PROJECT_KEY = 'ucp-app-react'
+        SONAR_PROJECT_NAME = 'UCP React App'
+    }
+
+    
 
     stages {
 
@@ -18,37 +26,44 @@ pipeline {
             }
         }
 
+        // Nueva etapa: Análisis de SonarQube
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                    sonar-scanner \
+                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                    -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                    -Dsonar.sources=src \
+                    -Dsonar.host.url=http://localhost:9000 \
+                    -Dsonar.login=${SONAR_AUTH_TOKEN} \
+                    -Dsonar.javascript.node=${NODEJS_HOME}/bin/node \
+                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                    '''
+                }
+            }
+        }
+
         // Etapa 2: Instalar dependencias y construir el proyecto
         stage('Build') {
             steps {
                 sh 'npm install'
                 sh 'npm run build'
-                // Ejecuta el build de React
+                sh 'npm run test:coverage' 
             }
-        }
-
-        // Etapa 3: Ejecutar pruebas unitarias
-        stage('Unit Tests') {
-            steps {
-
-                // Ejecuta pruebas sin modo interactivo
-                sh 'npm test -- --watchAll=false --ci --reporters=default --reporters=jest-junit' // Genera reporte JUnit
-
-                post { 
-                    always { 
-                        junit 'junit.xml' // Publica reporte en Jenkins archiveArtifacts artifacts: 'junit.xml', allowEmptyArchive: true
-                    }
-                }
-            }
-
-            
         }
     }
 
-    post { 
-        always { 
-            emailext ( subject: "Pipeline ${currentBuild.result}: ucp-app-react #${env.BUILD_NUMBER}", body: """ Estado: ${currentBuild.result} URL Build: ${env.BUILD_URL} Detalles de Pruebas: ${env.BUILD_URL}testReport/ """, to: 'anfasideri@hotmail.com' // Reemplaza con tu email 
-            ) 
-        } 
+    post {
+        always {
+            // Agregar notificación de calidad de SonarQube
+            script {
+                def qg = waitForQualityGate()
+                if (qg.status != 'OK') {
+                    error "Calidad no aprobada: ${qg.status}"
+                }
+        }
+        // Resto de las acciones post...
+        }
     }
 }
